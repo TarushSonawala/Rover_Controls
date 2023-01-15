@@ -1,19 +1,17 @@
-
 #include <Arduino.h>
 #include <HardwareSerial.h>
 #include <iostream>
 #include <string>
 
-HardwareSerial SerialPort(0); // use UART0
+HardwareSerial SerialPort(0); // use UART2
 
-char buf[30] = " ";
+std::string buffer = "";
 
 const int freq = 5000;
 const int channel1 = 0;
 const int channel2 = 1;
 const int channel3 = 2;
 const int resolution = 8;
-int dir = 0;
 
 #define relay1 21
 #define relay2 19
@@ -29,172 +27,145 @@ int dir = 0;
 #define auger_rot_dir 25
 #define senser_suit_dir 27
 
+
 char sm = '0';
 
 void setup()
 {
+   
+    Serial.begin(115200); // Use default serial for debug output
+    SerialPort.begin(115200); // Use UART2 with baud rate of 115200
 
-  Serial.begin(115200);     // Use default serial for debug output
-  SerialPort.begin(115200); // Use UART2 with baud rate of 115200
+    delay(1000);
 
-  delay(1000);
+    pinMode(relay1, OUTPUT); // relay 1
+    pinMode(relay2, OUTPUT);  // relay 2
+    pinMode(relay3, OUTPUT); // relay 3
+    pinMode(relay4, OUTPUT);  // relay 4
+    pinMode(water_heater, OUTPUT);  // water heater
+    pinMode(stepper_step, OUTPUT); // stepper step
+    pinMode(stepper_dir, OUTPUT); // stepper direction
+    pinMode(auger_dir, OUTPUT); // auger actuation direction
+    pinMode(auger_rot_dir, OUTPUT); // auger rotation direction
+    pinMode(senser_suit_dir, OUTPUT); // sensor suite direction
 
-  pinMode(relay1, OUTPUT);          // relay 1
-  pinMode(relay2, OUTPUT);          // relay 2
-  pinMode(relay3, OUTPUT);          // relay 3
-  pinMode(relay4, OUTPUT);          // relay 4
-  pinMode(water_heater, OUTPUT);    // water heater
-  pinMode(stepper_step, OUTPUT);    // stepper step
-  pinMode(stepper_dir, OUTPUT);     // stepper direction
-  pinMode(auger_dir, OUTPUT);       // auger actuation direction
-  pinMode(auger_rot_dir, OUTPUT);   // auger rotation direction
-  pinMode(senser_suit_dir, OUTPUT); // sensor suite direction
+    ledcSetup(channel1, freq, resolution);
+    ledcSetup(channel2, freq, resolution);
+    ledcSetup(channel3, freq, resolution);
 
-  ledcSetup(channel1, freq, resolution);
-  ledcSetup(channel2, freq, resolution);
-  ledcSetup(channel3, freq, resolution);
-
-  ledcAttachPin(auger_pwm, channel1);       // auger actuation PWM
-  ledcAttachPin(auger_rot_pwm, channel2);   // auger rotation PWM
-  ledcAttachPin(senser_suit_pwm, channel3); // sensor suite PWM
+    ledcAttachPin(auger_pwm, channel1); // auger actuation PWM
+    ledcAttachPin(auger_rot_pwm, channel2); // auger rotation PWM
+    ledcAttachPin(senser_suit_pwm, channel3); // sensor suite PWM
 }
 
-void SMControl(char sm)
+void SMControl(char buffer)
 {
-  switch (sm)
-  {
+    switch (buffer)
+    {
     case '0': // safety
-    Serial.println("");
-      ledcWrite(channel1, 0);
-      ledcWrite(channel2, 0);
-      ledcWrite(channel3, 0);
-      digitalWrite(relay1, LOW);
-      digitalWrite(relay2, LOW);
-      digitalWrite(relay3, LOW);
-      digitalWrite(relay4, LOW);
-      digitalWrite(water_heater, LOW);
-      digitalWrite(stepper_step, LOW);
-      digitalWrite(stepper_dir, LOW);
-      digitalWrite(auger_dir, LOW);
-      digitalWrite(auger_rot_dir, LOW);
-      digitalWrite(senser_suit_dir, LOW);
-      break;
+        ledcWrite(channel1, 0);
+        ledcWrite(channel2, 0);
+        ledcWrite(channel3, 0);
+        digitalWrite(relay1, LOW);
+        digitalWrite(relay2, LOW);
+        digitalWrite(relay3, LOW);
+        digitalWrite(relay4, LOW);
+        digitalWrite(water_heater, LOW);
+        digitalWrite(stepper_step, LOW);
+        digitalWrite(stepper_dir, LOW);
+        digitalWrite(auger_dir, LOW);
+        digitalWrite(auger_rot_dir, LOW);
+        digitalWrite(senser_suit_dir, LOW);
+        break;
 
     case '1': // relay 1,2,3,4
-      //      Serial.println("Hey its 1 fkers");
-      digitalWrite(relay1, HIGH);
-      digitalWrite(relay2, HIGH);
-      digitalWrite(relay3, HIGH);
-      digitalWrite(relay4, HIGH);
-      break;
+        Serial.println("Hey its 1 fkers");
+        digitalWrite(relay1, HIGH);
+        digitalWrite(relay2, HIGH);
+        digitalWrite(relay3, HIGH);
+        digitalWrite(relay4, HIGH);
+        break;
 
     case '2': // water heater
-      digitalWrite(water_heater, HIGH);
-      break;
+        digitalWrite(water_heater, HIGH);
+        break;
 
     case '3': // servo rotate
-      //      Serial.println("Hey its 3 cute fkers");
+        Serial.println("Hey its 3 cute fkers");
 
-      digitalWrite(stepper_step, HIGH);
-      delayMicroseconds(15000);
-      digitalWrite(stepper_step, LOW);
-      delayMicroseconds(15000);
-      break;
+        digitalWrite(stepper_step, HIGH);
+        delay(100);
+        digitalWrite(stepper_step, LOW);
+        delay(100);
+        break;
 
     case '4': // servo direction toggle
-      if (dir == 0)
-      {
-        digitalWrite(stepper_dir, HIGH);
-        dir = 1;
-      }
-      else
-      {
-        digitalWrite(stepper_dir, LOW);
-        dir = 0;
-      }
-      delay(3000);
-      // may have to add delay
-      break;
+        digitalWrite(stepper_dir, !digitalRead(stepper_dir));
+        delay(100);
+        //may have to add delay
+        break;
 
     case '5': // auger down with rotation
-      // Serial.println("Hey its 5 mo-fkers");
+        Serial.println("Hey its 5 mo-fkers");
 
-      digitalWrite(auger_dir, HIGH);
-      digitalWrite(auger_rot_dir, HIGH);
-      ledcWrite(channel1, 255);
-      ledcWrite(channel2, 255);
-      break;
+        digitalWrite(auger_dir, HIGH);
+        digitalWrite(auger_rot_dir, HIGH);
+        ledcWrite(channel1, 255);
+        ledcWrite(channel2, 255);
+        break;
 
     case '6': // auger up
-      digitalWrite(auger_dir, LOW);
-      digitalWrite(auger_rot_dir, LOW);
-      ledcWrite(channel1, 255);
-      ledcWrite(channel2, 0);
-      break;
+        digitalWrite(auger_dir, LOW);
+        digitalWrite(auger_rot_dir, LOW);
+        ledcWrite(channel1, 255);
+        ledcWrite(channel2, 0);
+        break;
 
     case '7': // auger rotation for deposition
-      digitalWrite(auger_dir, LOW);
-      digitalWrite(auger_rot_dir, LOW);
-      ledcWrite(channel1, 0);
-      ledcWrite(channel2, 255);
-      break;
+        digitalWrite(auger_dir, LOW);
+        digitalWrite(auger_rot_dir, LOW);
+        ledcWrite(channel1, 0);
+        ledcWrite(channel2, 255);
+        break;
 
     case '8': // sensor suite up
-      digitalWrite(senser_suit_dir, HIGH);
-      ledcWrite(channel3, 255);
-      break;
+        digitalWrite(senser_suit_dir, HIGH);
+        ledcWrite(channel3, 255);
+        break;
 
     case '9': // sensor suite down
-      digitalWrite(senser_suit_dir, LOW);
-      ledcWrite(channel3, 255);
-      break;
+        digitalWrite(senser_suit_dir, LOW);
+        ledcWrite(channel3, 255);
+        break;
 
-    //    case 10: // sensor suite down
-    //        digitalWrite(senser_suit_dir, LOW);
-    //        ledcWrite(channel3, 255);
-    //        break;
+//    case 10: // sensor suite down
+//        digitalWrite(senser_suit_dir, LOW);
+//        ledcWrite(channel3, 255);
+//        break;
 
     default:
-      ledcWrite(channel1, 0);
-      ledcWrite(channel2, 0);
-      ledcWrite(channel3, 0);
-      digitalWrite(relay1, LOW);
-      digitalWrite(relay2, LOW);
-      digitalWrite(relay3, LOW);
-      digitalWrite(relay4, LOW);
-      digitalWrite(water_heater, LOW);
-      digitalWrite(stepper_step, LOW);
-      digitalWrite(stepper_dir, LOW);
-      digitalWrite(auger_dir, LOW);
-      digitalWrite(auger_rot_dir, LOW);
-      digitalWrite(senser_suit_dir, LOW);
-  }
+        ledcWrite(channel1, 0);
+        ledcWrite(channel2, 0);
+        ledcWrite(channel3, 0);
+        break;
+    }
 }
 
 void loop()
 {
-  //  char buf[10] = " ";
-  while (SerialPort.available())
-  {
-    // read the data into the buffer
-    int i = 0;
-    while (SerialPort.available() && i < 30)
+    if(SerialPort.available())
     {
-      buf[i] = (char)SerialPort.read();
-      i++;
+        // read the data into the buffer
+        while(SerialPort.available()){
+            buffer += (char)SerialPort.read();
+        }
+        // process the data and print it
+        sm = buffer[0];
+        SMControl(sm);
+        buffer = ""; // clear buffer
     }
-    // process the data and print it
-
-    //        sm= buf[0];
-    Serial.println(buf[0]);
-
-    // sm = buffer[0];
-    SMControl(buf[0]);
-    //    buf[0] = {0};
-    // Serial.println(sm);
-    // buffer = " ";
-  }
-
-  //         SMControl('0');
-  //         Serial.println('0');
+    else
+    {
+        SMControl('0');
+    }
 }
