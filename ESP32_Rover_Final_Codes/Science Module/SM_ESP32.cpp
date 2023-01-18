@@ -104,7 +104,7 @@ void SMControl(char buffer)
       break;
 
     case '1': // relay 1,2,3,4
-      Serial.println("Hey its chutiya tarush");
+      Serial.println("Hey its 1");
       digitalWrite(relay1, HIGH);
       digitalWrite(relay2, HIGH);
       digitalWrite(relay3, HIGH);
@@ -116,7 +116,7 @@ void SMControl(char buffer)
       break;
 
     case '3': // servo rotate
-      Serial.println("Hey its 3 cute fkers");
+      Serial.println("Hey its 3");
 
       digitalWrite(stepper_step, HIGH);
       delayMicroseconds(5000);
@@ -131,7 +131,7 @@ void SMControl(char buffer)
       break;
 
     case '5': // auger down with rotation
-      Serial.println("Hey its 500 mo-fkers");
+      Serial.println("Hey its 5");
       for (int i = 0; i < 500; i++) {
 
 
