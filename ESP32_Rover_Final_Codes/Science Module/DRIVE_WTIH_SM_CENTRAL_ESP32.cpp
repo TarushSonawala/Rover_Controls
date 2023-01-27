@@ -1,4 +1,3 @@
-
 #include <Arduino.h>
 #include <HardwareSerial.h>
 
@@ -21,10 +20,22 @@ int x = 0, y = 0;
 float M = 1.0;
 char c;
 char data[16] = "000000000000000";
+void Stop(void) {
+  Serial.println("Stop");
+  digitalWrite(Ldir, LOW);
+  digitalWrite(Rdir, LOW);
+  ledcWrite(Lchannel, 0);
+  ledcWrite(Rchannel, 0);
+  Serial.write('0');
+}
 
 
-void MotorCode(int x, int y, int M, int s)
+void MotorCode(int x, int y, int M, int s, int r)
 {
+  if (r == 1) {
+    Sender.write('A');
+    ESP.restart();
+  }
   // STOP
   if (abs(x) < 100 && abs(y) < 100)
   {
@@ -94,8 +105,8 @@ void MotorCode(int x, int y, int M, int s)
 
     digitalWrite(Ldir, HIGH);
     digitalWrite(Rdir, LOW);
-    int i = map(abs(x) * (M * 0.1), 100, 1023, 0, 255);
-    int j = map(abs(abs(x) - abs(y)) * (M * 0.1), 100, 1023, 0, 255);
+    int i = map(abs(abs(x) - abs(y)) * (M * 0.1), 100, 1023, 0, 255);
+    int j = map(abs(x) * (M * 0.1), 100, 1023, 0, 255);
     ledcWrite(Lchannel, i);
     ledcWrite(Rchannel, j);
   }
@@ -107,8 +118,8 @@ void MotorCode(int x, int y, int M, int s)
 
     digitalWrite(Ldir, HIGH);
     digitalWrite(Rdir, HIGH);
-    int i = map(abs(y) * (M * 0.1), 100, 1023, 0, 255);
-    int j = map(abs(abs(x) - abs(y)) * (M * 0.1), 100, 1023, 0, 255);
+    int i = map(abs(abs(x) - abs(y)) * (M * 0.1), 100, 1023, 0, 255);
+    int j = map(abs(y) * (M * 0.1), 100, 1023, 0, 255);
     ledcWrite(Lchannel, i);
     ledcWrite(Rchannel, j);
   }
@@ -120,8 +131,8 @@ void MotorCode(int x, int y, int M, int s)
 
     digitalWrite(Ldir, HIGH);
     digitalWrite(Rdir, HIGH);
-    int i = map(abs(abs(x) - abs(y)) * (M * 0.1), 100, 1023, 0, 255);
-    int j = map(abs(y) * (M * 0.1), 100, 1023, 0, 255);
+    int i = map(abs(y) * (M * 0.1), 100, 1023, 0, 255);
+    int j = map(abs(abs(x) - abs(y)) * (M * 0.1), 100, 1023, 0, 255);
     ledcWrite(Lchannel, i);
     ledcWrite(Rchannel, j);
   }
@@ -133,8 +144,8 @@ void MotorCode(int x, int y, int M, int s)
 
     digitalWrite(Ldir, LOW);
     digitalWrite(Rdir, HIGH);
-    int i = map(abs(abs(x) - abs(y)) * (M * 0.1), 100, 1023, 0, 255);
-    int j = map(abs(x) * (M * 0.1), 100, 1023, 0, 255);
+    int i = map(abs(x) * (M * 0.1), 100, 1023, 0, 255);
+    int j = map(abs(abs(x) - abs(y)) * (M * 0.1), 100, 1023, 0, 255);
     ledcWrite(Lchannel, i);
     ledcWrite(Rchannel, j);
   }
@@ -193,7 +204,7 @@ void MotorCode(int x, int y, int M, int s)
   {
     case 0: // safety
       Sender.write('0');
-//      Serial.println("0");
+      //      Serial.println("0");
       break;
 
     case 1: // safety
@@ -203,7 +214,7 @@ void MotorCode(int x, int y, int M, int s)
 
     case 2: // safety
       Sender.write('2');
-//      Serial.println("2");
+      //      Serial.println("2");
       break;
 
     case 3: // safety
@@ -268,14 +279,15 @@ void loop()
         bufferIndex = 0;
     }
 
-    // Find the positions of the "M","X", "Y", "S" and "E" characters in the buffer
+    // Find the positions of the "M","X", "Y", "S" ,"R" and "E" characters in the buffer
     char *M_index = strchr(rxBuffer, 'M');
     char *x_index = strchr(rxBuffer, 'X');
     char *y_index = strchr(rxBuffer, 'Y');
     char *S_index = strchr(rxBuffer, 'S');
+    char *R_index = strchr(rxBuffer, 'R');
     char *E_index = strchr(rxBuffer, 'E');
 
-    if (M_index != NULL && x_index != NULL && y_index != NULL && S_index != NULL && E_index != NULL)
+    if (M_index != NULL && x_index != NULL && y_index != NULL && S_index != NULL && R_index != NULL && E_index != NULL)
     {
       // Extract the values from the packet
       char m = *(M_index + 1);
@@ -283,7 +295,8 @@ void loop()
       int x = atoi(x_index + 1);
       int y = atoi(y_index + 1);
       int s = atoi(S_index + 1);
-      MotorCode(x, y, M, s);
+      int r = atoi(R_index + 1);
+      MotorCode(x, y, M, s, r);
       delay(10);
 
     }
@@ -291,5 +304,11 @@ void loop()
     {
       Serial.println("Invalid Packet received");
     }
-  }  bufferIndex = 0;
+  }
+  else
+  {
+    Stop();
+  }
+
+  bufferIndex = 0;
 }
