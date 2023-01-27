@@ -32,15 +32,31 @@ int stepsPerRevolution = 200;
 #define limit_switch_top 34
 
 char sm = '0';
-void IRAM_ATTR function_ISR() {
-  ets_printf("Limit Switch Triggered");
-  for (int i = 0; i < 500; i++)
-  {
-    digitalWrite(auger_dir, HIGH);
-    digitalWrite(auger_rot_dir, HIGH);
-    ledcWrite(channel1, 255);
-    ledcWrite(channel2, 255);
-  }
+//void IRAM_ATTR function_ISR() {
+//  ets_printf("Limit Switch Triggered");
+//  for (int i = 0; i < 5000; i++)
+//  {
+//    digitalWrite(auger_dir, HIGH);
+//    digitalWrite(auger_rot_dir, HIGH);
+//    ledcWrite(channel1, 255);
+//    ledcWrite(channel2, 255);
+//  }
+//
+//}
+void Stop(void) {
+  Serial.println("Stop");
+  ledcWrite(channel1, 0);
+  ledcWrite(channel2, 0);
+  ledcWrite(channel3, 0);
+  digitalWrite(relay1, LOW);
+  digitalWrite(relay2, LOW);
+  digitalWrite(relay3, LOW);
+  digitalWrite(relay4, LOW);
+  digitalWrite(water_heater, LOW);
+  digitalWrite(stepper_step, LOW);
+  digitalWrite(auger_dir, LOW);
+  digitalWrite(auger_rot_dir, LOW);
+  digitalWrite(senser_suit_dir, LOW);
 
 }
 void setup()
@@ -49,8 +65,8 @@ void setup()
   Serial.begin(115200);
   Receiver.begin(115200, 25, 26); //(baud rate,protocol,Tx,Rx)
 
-  delay(1000);
-  //  attachInterrupt(limit_switch_top, function_ISR, FALLING);
+  //  pinMode(limit_switch_top, INPUT_PULLUP);
+//  attachInterrupt(limit_switch_top, function_ISR, CHANGE);
   pinMode(relay1, OUTPUT);          // relay 1
   pinMode(relay2, OUTPUT);          // relay 2
   pinMode(relay3, OUTPUT);          // relay 3
@@ -89,134 +105,144 @@ void setup()
 
 void loop()
 {
-  while (Receiver.available())
-  {
-    char RxdChar = Receiver.read();
-    Serial.println(RxdChar);
-    SMControl(RxdChar);
+  if (Receiver.available()) {
+
+
+    while (Receiver.available())
+    {
+      char RxdChar = Receiver.read();
+      Serial.println(RxdChar);
+      SMControl(RxdChar);
+    }
+
+    delay(100);
   }
-  delay(100);
-}
-
-
-void SMControl(char buffer)
-{
-  switch (buffer)
+  else
   {
-    case '0': // safety
-    
-      ledcWrite(channel1, 0);
-      ledcWrite(channel2, 0);
-      ledcWrite(channel3, 0);
-      digitalWrite(relay1, LOW);
-      digitalWrite(relay2, LOW);
-      digitalWrite(relay3, LOW);
-      digitalWrite(relay4, LOW);
-      digitalWrite(water_heater, LOW);
-      digitalWrite(stepper_step, LOW);
-      digitalWrite(auger_dir, LOW);
-      digitalWrite(auger_rot_dir, LOW);
-      digitalWrite(senser_suit_dir, LOW);
-      break;
+    Stop();
+  }
 
-    case '1': // relay 1,2,3,4
-      Serial.println("Hey its 1");
-      digitalWrite(relay1, HIGH);
-      digitalWrite(relay2, HIGH);
-      digitalWrite(relay3, HIGH);
-      digitalWrite(relay4, HIGH);
-      break;
-
-    case '2': // water heater
-      digitalWrite(water_heater, HIGH);
-      break;
-
-    case '3': // servo rotate
-      Serial.println(current_direction);
-      //      digitalWrite(stepper_dir, current_direction);
-      for (int x = 0; x < 3; x++)
-      {
-        digitalWrite(stepper_step, HIGH);
-        delayMicroseconds(500);
-        digitalWrite(stepper_step, LOW);
-        delayMicroseconds(500);
-      }
-      //      digitalWrite(stepper_step, HIGH);
-      //      delayMicroseconds(200);
-      //      digitalWrite(stepper_step, LOW);
-      //      delayMicroseconds(200);
-      break;
-
-    case '4': // servo direction toggle
-      Serial.println(current_direction);
-      if (millis() - previous_millis >= debounce_time) {
-        previous_millis = millis();
-        if (current_direction == LOW) {
-          digitalWrite(stepper_dir, HIGH);
-          current_direction = HIGH;
-        }
-        else {
-          digitalWrite(stepper_dir, LOW);
-          current_direction = LOW;
-        }
-      }
-      break;
-
-    case '5': // auger down with rotation
-      Serial.println("Hey its 500 mo-fkers");
-      for (int i = 0; i < 500; i++) {
-
-
-        digitalWrite(auger_dir, HIGH);
-        digitalWrite(auger_rot_dir, HIGH);
-        ledcWrite(channel1, 255);
-        ledcWrite(channel2, 255);
-      }
-      break;
-
-    case '6': // auger up]
-      for (int i = 0; i < 500; i++)
-      {
-        digitalWrite(auger_dir, LOW);
-        digitalWrite(auger_rot_dir, LOW);
+}
+  void SMControl(char buffer)
+  {
+    switch (buffer)
+    {
+      case '0': // safety
         ledcWrite(channel1, 0);
-        ledcWrite(channel2, 255);
-      }
-      break;
-
-    case '7': // auger rotation for deposition
-      for (int i = 0; i < 500; i++)
-      {
-
+        ledcWrite(channel2, 0);
+        ledcWrite(channel3, 0);
+        digitalWrite(relay1, LOW);
+        digitalWrite(relay2, LOW);
+        digitalWrite(relay3, LOW);
+        digitalWrite(relay4, LOW);
+        digitalWrite(water_heater, LOW);
+        digitalWrite(stepper_step, LOW);
         digitalWrite(auger_dir, LOW);
         digitalWrite(auger_rot_dir, LOW);
-        ledcWrite(channel1, 255);
-        ledcWrite(channel2, 0);
-      }
-      break;
-
-    case '8': // sensor suite up
-      for (int i = 0; i < 500; i++)
-      {
-
-        digitalWrite(senser_suit_dir, HIGH);
-        ledcWrite(channel3, 255);
-      }
-      break;
-
-    case '9': // sensor suite down
-      for (int i = 0; i < 500; i++)
-      {
-
         digitalWrite(senser_suit_dir, LOW);
-        ledcWrite(channel3, 255);
-      }
-      break;
+        break;
 
-    default:
-      ledcWrite(channel1, 0);
-      ledcWrite(channel2, 0);
-      ledcWrite(channel3, 0);
-      break;
+      case '1': // relay 1,2,3,4
+        Serial.println("Hey its 1");
+        digitalWrite(relay1, HIGH);
+        digitalWrite(relay2, HIGH);
+        digitalWrite(relay3, HIGH);
+        digitalWrite(relay4, HIGH);
+        break;
+
+      case '2': // water heater
+        digitalWrite(water_heater, HIGH);
+        break;
+
+      case '3': // servo rotate
+        Serial.println(current_direction);
+        //      digitalWrite(stepper_dir, current_direction);
+        for (int x = 0; x < 3; x++)
+        {
+          digitalWrite(stepper_step, HIGH);
+          delayMicroseconds(500);
+          digitalWrite(stepper_step, LOW);
+          delayMicroseconds(500);
+        }
+        //      digitalWrite(stepper_step, HIGH);
+        //      delayMicroseconds(200);
+        //      digitalWrite(stepper_step, LOW);
+        //      delayMicroseconds(200);
+        break;
+
+      case '4': // servo direction toggle
+        Serial.println(current_direction);
+        if (millis() - previous_millis >= debounce_time) {
+          previous_millis = millis();
+          if (current_direction == LOW) {
+            digitalWrite(stepper_dir, HIGH);
+            current_direction = HIGH;
+          }
+          else {
+            digitalWrite(stepper_dir, LOW);
+            current_direction = LOW;
+          }
+        }
+        break;
+
+      case '5': // auger down with rotation
+        Serial.println("Hey its 500 mo-fkers");
+        for (int i = 0; i < 500; i++) {
+
+
+          digitalWrite(auger_dir, HIGH);
+          digitalWrite(auger_rot_dir, HIGH);
+          ledcWrite(channel1, 255);
+          ledcWrite(channel2, 255);
+        }
+        break;
+
+      case '6': // auger up]
+        for (int i = 0; i < 500; i++)
+        {
+          digitalWrite(auger_dir, LOW);
+          digitalWrite(auger_rot_dir, LOW);
+          ledcWrite(channel1, 0);
+          ledcWrite(channel2, 255);
+        }
+        break;
+
+      case '7': // auger rotation for deposition
+        for (int i = 0; i < 500; i++)
+        {
+
+          digitalWrite(auger_dir, LOW);
+          digitalWrite(auger_rot_dir, LOW);
+          ledcWrite(channel1, 255);
+          ledcWrite(channel2, 0);
+        }
+        break;
+
+      case '8': // sensor suite up
+        for (int i = 0; i < 500; i++)
+        {
+
+          digitalWrite(senser_suit_dir, HIGH);
+          ledcWrite(channel3, 255);
+        }
+        break;
+
+      case '9': // sensor suite down
+        for (int i = 0; i < 500; i++)
+        {
+
+          digitalWrite(senser_suit_dir, LOW);
+          ledcWrite(channel3, 255);
+        }
+        break;
+      case 'A': // ESP Restart
+        ESP.restart();
+        break;
+
+      default:
+        ledcWrite(channel1, 0);
+        ledcWrite(channel2, 0);
+        ledcWrite(channel3, 0);
+        break;
+    }
   }
-}
