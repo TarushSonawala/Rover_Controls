@@ -36,6 +36,7 @@ GD = 0
 GU = 0
 Gear = 0
 kv = 0
+Reset = 0
 # Debouncing time in milliseconds
 debounce_time = 200
 
@@ -85,10 +86,10 @@ pygame.joystick.init()
 controller = pygame.joystick.Joystick(0)
 print("Joystick Successfully sected")
 controller.init()
-output_string = " M{Gear}X{left_joystick_x}Y{left_joystick_y}S{kv}E"
+output_string = " M{Gear}X{left_joystick_x}Y{left_joystick_y}S{kv}R{Reset}E"
 # Set up the socket
 # HOST = '192.168.137.250'  # The host IP address
-HOST = "10.0.0.7"
+HOST = "10.0.0.11"
 # HOST = "127.0.0.1"
 PORT = 5005      # The port to listen on
 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -97,7 +98,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
     # s, addr1 = s.accept()
     text_print = TextPrint()
     pygame.event.pump()
-
+    font = pygame.font.Font(None, 36)
     while True:
         screen.fill((0, 0, 0))
         text_print.reset()
@@ -126,7 +127,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         print('connected by', addr)
         # Set up a timer and interval to send data
         timer = 0
-        interval = 100 # Send data every 0.1 seconds
+        interval = 10  # Send data every 0.1 seconds
         running = True
         pygame.key.get_focused()
 
@@ -135,8 +136,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                    pygame.quit()
+                    exit()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_1:
+                        print("Key 1 has been pressed")
                         kv = 1
                     elif event.key == pygame.K_2:
                         print("Key 2 has been pressed")
@@ -145,12 +149,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                         print("Key 3 has been pressed")
                         kv = 3
                     elif event.key == pygame.K_4:
-                        print("Key d has been pressed")
-                        kv = 'd'
-                    elif event.key == pygame.K_4:
-                        print("Key a has been pressed")
-                        kv = 'a'
-                    
+                        print("Key 4 has been pressed")
+                        kv = 4
                     elif event.key == pygame.K_5:
                         print("Key 5 has been pressed")
                         kv = 5
@@ -166,9 +166,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                     elif event.key == pygame.K_9:
                         print("Key 9 has been pressed")
                         kv = 9
+                    elif event.key == pygame.K_SPACE:
+                        print("Key SPACE has been pressed")
+                        Reset = 1
+
                 elif event.type == pygame.KEYUP:
                     # if event.key == pygame.K_1 or event.key == pygame.K_2:
                     kv = 0
+                    Reset = 0
             # Update the timer and send data
             timer += 1 / 60  # 1/60 seconds have passed
             if timer >= interval:
@@ -188,7 +193,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                         if Gear > 0:
                             Gear -= 1
                             last_press_time = pygame.time.get_ticks()
-                
+
                 pygame.event.pump()
                 left_joystick_0 = controller.get_axis(AXIS_LEFT_STICK_X)
                 left_joystick_x_0 = int(
@@ -198,8 +203,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                     AXIS_LEFT_STICK_Y), -1, 1, -1023, 1023))
                 left_joystick_y = str(left_joystick_y_1)
                 data = output_string.format(
-                    Gear=Gear, left_joystick_x=left_joystick_x, left_joystick_y=left_joystick_y, kv=kv, E=0)
+                    Gear=Gear, left_joystick_x=left_joystick_x, left_joystick_y=left_joystick_y, kv=kv, Reset=Reset, E=0)
                 print(data)
+                # text_surface = font.render({data}, True, (255, 255, 255))
+                # screen.blit(text_surface, (100, 100))
+
+                # pygame.display.update()
                 s.sendto(data.encode(), (addr))
 
 # Quit pygame
