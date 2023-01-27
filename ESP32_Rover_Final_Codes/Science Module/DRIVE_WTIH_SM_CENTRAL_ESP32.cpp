@@ -7,34 +7,15 @@ HardwareSerial Sender(1);
 const int BUFFER_SIZE = 128;
 char rxBuffer[BUFFER_SIZE];
 int bufferIndex = 0;
-const int Rdir = 5;
-const int Ldir = 25;
-const int Rpwm = 18;
+const int Rdir = 23;
+const int Ldir = 32;
+const int Rpwm = 19;
 const int Lpwm = 33;
 
 const int freq = 8000;
 const int Lchannel = 0;
 const int Rchannel = 1;
 const int resolution = 8;
-// const int freq = 5000;
-const int channel1 = 0;
-const int channel2 = 1;
-const int channel3 = 2;
-
-#define relay1 21
-#define relay2 19
-#define relay3 18
-#define relay4 5
-#define water_heater 17
-#define stepper_step 23
-#define stepper_dir 22 ///
-#define auger_pwm 33
-#define auger_rot_pwm 26
-#define senser_suit_pwm 14
-#define auger_dir 32
-#define auger_rot_dir 25
-#define senser_suit_dir 27
-const int fact = 255 / 1023;
 
 int x = 0, y = 0;
 float M = 1.0;
@@ -78,8 +59,6 @@ void MotorCode(int x, int y, int M, int s)
     int j = map(abs(y) * (M * 0.1), 100, 1023, 0, 255);
     ledcWrite(Lchannel, i);
     ledcWrite(Rchannel, j);
-    ledcWrite(Lchannel, (uint32_t)(abs(y) * (M * 0.1) * fact));
-    ledcWrite(Rchannel, (uint32_t)(abs(y) * (M * 0.1) * fact));
   }
 
   // SPOT LEFT
@@ -312,6 +291,5 @@ void loop()
     {
       Serial.println("Invalid Packet received");
     }
-  }
-  bufferIndex = 0;
+  }  bufferIndex = 0;
 }
